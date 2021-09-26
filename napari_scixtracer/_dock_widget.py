@@ -7,11 +7,13 @@ see: https://napari.org/docs/dev/plugins/hook_specifications.html
 Replace code below according to your needs.
 """
 import os
+from pathlib import Path
 from napari_plugin_engine import napari_hook_implementation
 
 import qtpy.QtCore
 from qtpy.QtWidgets import (QApplication, QWidget, QVBoxLayout, QFileDialog,
-                            QLabel, QTabWidget, QHBoxLayout, QMessageBox)
+                            QLabel, QTabWidget, QHBoxLayout, QMessageBox,
+                            QGridLayout)
 
 from scixtracergui.framework import SgAction, SgComponent
 
@@ -77,7 +79,6 @@ class SgExperimentApp(SgComponent):
             print('format:', data_info.format)
             print('uri:', data_info.uri)
             self.napari_viewer.add_image(imread(data_info.uri), name=data_info.name)
-
         if action.state == SgExperimentHomeStates.NewClicked:
             self.createComponent.get_widget().setVisible(True)
             self.homeComponent.get_widget().setVisible(False)
@@ -95,10 +96,18 @@ class SgExperimentApp(SgComponent):
         if action.state == SgExperimentCreateStates.ExperimentCreated:
             self.createComponent.get_widget().setVisible(False)
             self.experimentComponent.get_widget().setVisible(True)
+        if action.state == SgExperimentCreateStates.CancelCreateClicked:
+            self.homeComponent.get_widget().setVisible(True)
+            self.createComponent.get_widget().setVisible(False)
+            self.experimentComponent.get_widget().setVisible(False)
         if action.state == SgExperimentCreateStates.ExperimentCreationError:
             msgBox = QMessageBox()
             msgBox.setText(self.expCreateContainer.errorMessage)
             msgBox.exec()
+        if action.state == SgExperimentStates.HomeClicked:
+            self.homeComponent.get_widget().setVisible(True)
+            self.createComponent.get_widget().setVisible(False)
+            self.experimentComponent.get_widget().setVisible(False)
 
     def get_widget(self):
         return self.widget
@@ -114,11 +123,13 @@ class SciXtracer(QWidget):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         stylesheet_path = os.path.join(dir_path, 'theme', 'dark',
                                        'stylesheet.css')
-        print('set the stylesheet:', stylesheet_path)
-        component.get_widget().setStyleSheet("file:///" + stylesheet_path)
 
-        self.setLayout(QHBoxLayout())
-        self.layout().addWidget(component.get_widget())
+        css = Path(stylesheet_path).read_text()
+        print('set the stylesheet:', stylesheet_path)
+        component.get_widget().setStyleSheet(css)
+
+        self.setLayout(QGridLayout())
+        self.layout().addWidget(component.get_widget(), 0, 0)
 
 
 @napari_hook_implementation
